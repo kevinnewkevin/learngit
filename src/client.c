@@ -44,16 +44,23 @@ int main(int argc, char* argv[])//server's ip and port
 
 	int lMsg;
 	char sRecv[1024];
-	recv(sdCli, &lMsg, 4, 0);
-	recvn(sdCli, lMsg, sRecv);
-	printf("--------------------------------------------\n");
-	printf("%s", sRecv);
-	printf("--------------------------------------------\n");
-
 	int flag;
 	char sSend[1024];
 	while(1)
 	{
+		recv(sdCli, &lMsg, 4, 0);
+		memset(&sRecv, 0, 1024);
+		recvn(sdCli, lMsg, sRecv);
+		printf("local dir: %s\n", sRecv);
+
+		recv(sdCli, &lMsg, 4, 0);
+		memset(&sRecv, 0, 1024);
+		recvn(sdCli, lMsg, sRecv);
+		printf("--------------------------------------------\n");
+		printf("%s", sRecv);
+		printf("--------------------------------------------\n");
+
+
 		fgets(sSend, 1024, stdin);
 		lMsg = strlen(sSend);
 		sSend[lMsg - 1] = '\0';
@@ -62,6 +69,8 @@ int main(int argc, char* argv[])//server's ip and port
 			continue;
 		send(sdCli, &lMsg, 4, 0);
 		sendn(sdCli, lMsg, sSend);
+		if(sSend[0] == 'c' && sSend[1] == 'd' && sSend[2] == ' ')
+			continue;
 		recv(sdCli, &flag, 4, 0);
 		if(flag == -1)
 			printf("file not exist!\n");

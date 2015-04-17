@@ -9,7 +9,9 @@
 
 int sendn(int, int, char*);
 int recvn(int, int, char*);
-void ShowDir(int);
+void ShowDir(int, char*);
+void MyCd(char*, char*);
+void UpDir(char*);
 
 void* myhand(void* arg)
 {
@@ -18,21 +20,34 @@ void* myhand(void* arg)
 	while(1)
 	{
 
-		sdCli = th_pop(mypthd);
-		ShowDir(sdCli);
 		int lMsg;
 		char sRecv[1024];
 		char sPath[256];
 		int fdSend;
+		char pathDef[256] = "/home/chen/download";
+		sdCli = th_pop(mypthd);
+
 		while(1)
 		{
-			//recv filename
+			//show dir
+			lMsg = strlen(pathDef);
+			send(sdCli, &lMsg, 4, 0);
+			sendn(sdCli, lMsg, pathDef);
+			ShowDir(sdCli, pathDef);
+
+			//recv string
 			recv(sdCli, &lMsg, 4, 0);
 			recvn(sdCli, lMsg, sRecv);
+			
+			if(sRecv[0] == 'c' && sRecv[1] == 'd' && sRecv[2] == ' ')
+			{
+				MyCd(pathDef, &sRecv[3]);
+				continue;
+			}
 
 			//open file
 			memset(sPath, 0, 256);
-			sprintf(sPath, "%s/%s", DOWN_PATH, sRecv);
+			sprintf(sPath, "%s/%s", pathDef, sRecv);
 			fdSend = open(sPath, O_RDONLY);
 			if(fdSend == -1)
 			{
@@ -138,10 +153,10 @@ int recvn(int sdRecv, int lMsg, char* sRecv)
 	return lDrift;
 }
 
-void ShowDir(int sdShow)
+void ShowDir(int sdShow,char* path)
 {
 	DIR* pDir;
-	pDir = opendir(DOWN_PATH);
+	pDir = opendir(path);
 	if(pDir == NULL)
 	{
 		perror("opendir");
@@ -163,4 +178,38 @@ void ShowDir(int sdShow)
 	lSend = strlen(sSend);
 	send(sdShow, &lSend, 4, 0);
 	sendn(sdShow, lSend, sSend);
+}
+
+void MyCd(char* pathDef, char* pathNew)
+{
+	if(pathNew[0] == '.')
+	{
+		if(pathNew[1] == '.')
+		{
+			UpDir(pathDef);
+			strcat(pathDef, &pathNew[2]);
+			return ;
+		}
+		else
+		{
+			strcat(pathDef, &pathNew[1]);
+			return ;
+		}
+	}
+	else
+	{
+		memset(pathDef, 0, 256);
+		strcpy(pathDef, pathNew);
+	}
+}
+
+void UpDir(char* path)
+{
+	int lPath;
+	lPath = strlen(path);
+	while(path[lPath] != '/')
+	{
+		lPath--;
+	}
+	path[lPath] = '\0';
 }
